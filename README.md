@@ -1,73 +1,55 @@
-# Welcome to your Lovable project
+# Nishita Matlani — AI Portfolio
 
-## Project info
+Portfolio site with an AI-powered resume chat (RAG): ask questions about experience, skills, and projects.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Tech
 
-## How can I edit this code?
+- **Frontend:** Vite, React, TypeScript, Tailwind CSS, shadcn/ui
+- **RAG:** Pinecone (vectors), local embeddings (`@xenova/transformers`), Groq (LLM)
 
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Quick start
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
 npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+npm run dev          # Frontend → http://localhost:8080
+npm run server       # RAG API → http://localhost:4000 (for /chat)
 ```
 
-**Edit a file directly in GitHub**
+## Environment
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Create a `.env` in the project root:
 
-**Use GitHub Codespaces**
+```sh
+PINECONE_API_KEY=your-pinecone-api-key
+PINECONE_INDEX_NAME=resume-index
+GROQ_API_KEY=your-groq-api-key
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Scripts
 
-## What technologies are used for this project?
+| Command | Description |
+|--------|-------------|
+| `npm run dev` | Start Vite dev server (port 8080) |
+| `npm run server` | Start RAG backend (port 4000) |
+| `npm run build` | Production build |
+| `npm run ingest-master-resume` | Embed master resume and upload to Pinecone |
+| `npm run delete-all-vectors` | Clear all vectors from Pinecone |
+| `npm run setup-pinecone` | Create Pinecone index (768 dims, cosine) |
 
-This project is built with:
+## RAG flow
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+1. User question → embedded with local model → query Pinecone.
+2. Top similar chunks (by cosine similarity) → concatenated as context.
+3. Context + question → Groq LLM → answer shown in chat.
 
-## How can I deploy this project?
+## Project layout
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+- `src/` — React app (pages, components, styles)
+- `server/index.mjs` — Express RAG API (embed, Pinecone, Groq)
+- `scripts/ingest-master-resume.mjs` — Master resume → chunks → Pinecone
+- `scripts/delete-all-vectors.mjs` — Wipe index
+- `scripts/setup-pinecone.mjs` — Create index
 
-## Can I connect a custom domain to my Lovable project?
+## Deploy
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Build: `npm run build`. Deploy the `dist/` output and run the RAG server (or a serverless function) with the same env vars. Point the frontend at your RAG API URL via `VITE_CHAT_API_URL` if not same origin.

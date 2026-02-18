@@ -3,44 +3,110 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Send, RotateCcw, Bot, User } from "lucide-react";
 
-type Message = { role: "user" | "assistant"; content: string };
+type Message = { 
+  role: "user" | "assistant"; 
+  content: string;
+  detectedRole?: string;
+};
+
+const CHAT_API_URL = import.meta.env.VITE_CHAT_API_URL || "http://localhost:4000";
 
 const suggestedPrompts = [
   "What's her experience with data pipelines?",
   "Tell me about her GenAI projects",
   "What cloud platforms has she worked with?",
-  "What's she looking for in her next role?",
+  "What's her experience as a Data Engineer?",
+  "What analytics tools does she know?",
 ];
+
+type RagStatus = {
+  pineconeConfigured: boolean;
+  groqConfigured: boolean;
+  vectorCount: number | null;
+  error?: string;
+} | null;
 
 const ChatPage = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [ragStatus, setRagStatus] = useState<RagStatus>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Check if embeddings are in the vector DB (Pinecone) on load
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${CHAT_API_URL}/api/rag-status`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return;
+        setRagStatus({
+          pineconeConfigured: data.pineconeConfigured ?? false,
+          groqConfigured: data.groqConfigured ?? false,
+          vectorCount: data.vectorCount ?? null,
+          error: data.error ?? undefined,
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setRagStatus(null);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
   const sendMessage = async (text: string) => {
-    if (!text.trim() || isLoading) return;
-    const userMsg: Message = { role: "user", content: text.trim() };
+    const trimmed = text.trim();
+    if (!trimmed || isLoading) return;
+
+    const userMsg: Message = { role: "user", content: trimmed };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setIsLoading(true);
 
-    // Placeholder response until Cloud is connected
-    setTimeout(() => {
+    try {
+      const res = await fetch(`${CHAT_API_URL}/api/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message: trimmed }),
+      });
+
+      const data: { answer?: string; detectedRole?: string; error?: string; details?: string } = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        const errMsg = data.details || data.error || `API error: ${res.status}`;
+        throw new Error(errMsg);
+      }
+
+      const answer =
+        data.answer ||
+        "I couldn't generate an answer from the resume data, but Nishita has strong experience across data, AI, and engineering.";
+
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content:
-            "Thanks for your question! The AI chat feature is being set up. Once connected to Cloud, I'll be able to answer detailed questions about Nishita's experience, skills, and projects. Stay tuned! 🚀",
+          content: answer,
+          detectedRole: data.detectedRole,
         },
       ]);
+    } catch (err) {
+      console.error("Chat error", err);
+      const message = err instanceof Error ? err.message : "Something went wrong talking to the AI backend. Please check that the resume chat server is running and try again.";
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: message,
+        },
+      ]);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -57,6 +123,23 @@ const ChatPage = () => {
           </div>
         </div>
       </div>
+
+      {/* RAG status: embeddings in DB + similarity → Groq → here */}
+      {ragStatus && (
+        <div className="max-w-3xl mx-auto px-6 py-2">
+          <div className={`text-xs rounded-lg px-3 py-2 ${ragStatus.error || (ragStatus.vectorCount !== null && ragStatus.vectorCount === 0) ? "bg-destructive/10 text-destructive" : "bg-muted/50 text-muted-foreground"}`}>
+            {ragStatus.error ? (
+              <>Vector DB error: {ragStatus.error}</>
+            ) : ragStatus.vectorCount === null ? (
+              <>Checking… Pinecone {ragStatus.pineconeConfigured ? "configured" : "not configured"} · Groq {ragStatus.groqConfigured ? "configured" : "not configured"}</>
+            ) : ragStatus.vectorCount === 0 ? (
+              <>No embeddings in database. Run <code className="px-1 rounded bg-background">npm run ingest-resumes</code> then restart the server.</>
+            ) : (
+              <>Flow: your question → embedding → similarity in vector DB ({ragStatus.vectorCount} vectors) → Groq → answer here</>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto">
@@ -101,14 +184,21 @@ const ChatPage = () => {
                   <Bot size={14} className="text-primary" />
                 </div>
               )}
-              <div
-                className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
-                  msg.role === "user"
-                    ? "bg-primary text-primary-foreground rounded-tr-sm"
-                    : "bg-card border border-border text-foreground rounded-tl-sm"
-                }`}
-              >
-                {msg.content}
+              <div className="flex flex-col gap-1 max-w-[75%]">
+                <div
+                  className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+                    msg.role === "user"
+                      ? "bg-primary text-primary-foreground rounded-tr-sm"
+                      : "bg-card border border-border text-foreground rounded-tl-sm"
+                  }`}
+                >
+                  {msg.content}
+                </div>
+                {msg.detectedRole && msg.role === "assistant" && (
+                  <span className="text-[10px] text-muted-foreground px-2">
+                    Answering as: {msg.detectedRole}
+                  </span>
+                )}
               </div>
               {msg.role === "user" && (
                 <div className="w-8 h-8 rounded-full bg-foreground/10 flex items-center justify-center flex-shrink-0 mt-1">
