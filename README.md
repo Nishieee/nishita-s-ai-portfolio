@@ -5,7 +5,7 @@ Portfolio site with an AI-powered resume chat (RAG): ask questions about experie
 ## Tech
 
 - **Frontend:** Vite, React, TypeScript, Tailwind CSS, shadcn/ui
-- **RAG:** Pinecone (vectors), local embeddings (`@xenova/transformers`), Groq (LLM)
+- **RAG:** Pinecone (vectors), Hugging Face Inference API (embeddings, free tier), Groq (LLM)
 
 ## Quick start
 
@@ -23,6 +23,7 @@ Create a `.env` in the project root:
 PINECONE_API_KEY=your-pinecone-api-key
 PINECONE_INDEX_NAME=resume-index
 GROQ_API_KEY=your-groq-api-key
+HUGGINGFACE_API_TOKEN=your-hf-token   # Free tier: https://huggingface.co/settings/tokens
 ```
 
 ## Scripts
@@ -38,7 +39,7 @@ GROQ_API_KEY=your-groq-api-key
 
 ## RAG flow
 
-1. User question → embedded with local model → query Pinecone.
+1. User question → embedded via Hugging Face API → query Pinecone.
 2. Top similar chunks (by cosine similarity) → concatenated as context.
 3. Context + question → Groq LLM → answer shown in chat.
 
@@ -56,8 +57,8 @@ Netlify hosts **only the frontend**. The RAG API is a Node server and must run e
 
 ### 1. Deploy backend (Railway or Render)
 
-- **Railway:** [railway.app](https://railway.app) → New Project → Deploy from GitHub. Root directory: project root. Start command: `npm run server`. Add env vars: `PINECONE_API_KEY`, `PINECONE_INDEX_NAME`, `GROQ_API_KEY`. Copy the public URL (e.g. `https://your-app.up.railway.app`).
-- **Render:** [render.com](https://render.com) → New Web Service → connect repo. **Build:** `npm install` (use npm, not bun, so the `sharp` dependency gets prebuilt binaries and doesn’t need `node-gyp`). **Start:** `npm run server`. Add same env vars. Copy the service URL. Optional: use the repo’s `render.yaml` for a one-click deploy.
+- **Railway:** [railway.app](https://railway.app) → New Project → Deploy from GitHub. Root directory: project root. Start command: `npm run server`. Add env vars: `PINECONE_API_KEY`, `PINECONE_INDEX_NAME`, `GROQ_API_KEY`, `HUGGINGFACE_API_TOKEN`. Copy the public URL (e.g. `https://your-app.up.railway.app`).
+- **Render:** [render.com](https://render.com) → New Web Service → connect repo. **Build:** `npm install` (use npm, not bun, so the `sharp` dependency gets prebuilt binaries and doesn’t need `node-gyp`). **Start:** `npm run server`. Add same env vars (including `HUGGINGFACE_API_TOKEN`). Copy the service URL. Optional: use the repo’s `render.yaml` for a one-click deploy.
 
 ### 2. Deploy frontend to Netlify
 

@@ -3,13 +3,13 @@ import express from "express";
 import cors from "cors";
 import { Pinecone } from "@pinecone-database/pinecone";
 import Groq from "groq-sdk";
-import { pipeline } from "@xenova/transformers";
 
 const {
   PORT = 4000,
   PINECONE_API_KEY,
   PINECONE_INDEX_NAME,
   GROQ_API_KEY,
+  HUGGINGFACE_API_TOKEN,
 } = process.env;
 
 if (!PINECONE_API_KEY) {
@@ -20,6 +20,9 @@ if (!PINECONE_INDEX_NAME) {
 }
 if (!GROQ_API_KEY) {
   console.warn("[RAG] Missing GROQ_API_KEY in environment");
+}
+if (!HUGGINGFACE_API_TOKEN) {
+  console.warn("[RAG] Missing HUGGINGFACE_API_TOKEN (needed for embeddings)");
 }
 
 const app = express();
@@ -37,38 +40,57 @@ const groq = new Groq({
   apiKey: GROQ_API_KEY || "",
 });
 
-// Initialize local embedding model (runs on your machine, no API needed!)
-// Using all-mpnet-base-v2 to match 768 dimensions in Pinecone index
-let embedder = null;
-async function getEmbedder() {
-  if (!embedder) {
-    console.log("[RAG] Loading local embedding model (first time may take 1-2 min to download ~420MB)...");
-    embedder = await pipeline(
-      "feature-extraction",
-      "Xenova/all-mpnet-base-v2", // 768 dimensions - matches Pinecone index
-      { quantized: true } // Use quantized model for faster loading
-    );
-    console.log("[RAG] Embedding model loaded! (768 dimensions)");
-  }
-  return embedder;
-}
+// Hugging Face Inference API — same 768-dim model as before, no local model load (faster cold start)
+const HF_EMBED_MODEL = "sentence-transformers/all-mpnet-base-v2";
+const HF_EMBED_DIMS = 768;
 
 async function embedQuery(text) {
+  if (!HUGGINGFACE_API_TOKEN) {
+    throw new Error("HUGGINGFACE_API_TOKEN not set — cannot generate embeddings");
+  }
   try {
-    const model = await getEmbedder();
-    const output = await model(text, { pooling: "mean", normalize: true });
-    
-    // Convert tensor to array
-    let vector = Array.from(output.data);
-    
-    if (!Array.isArray(vector) || vector.length === 0) {
-      throw new Error(`Unexpected embedding format`);
+    const res = await fetch(
+      `https://api-inference.huggingface.co/pipeline/feature-extraction/${HF_EMBED_MODEL}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${HUGGINGFACE_API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          inputs: text.slice(0, 8192), // HF limit
+          options: { wait_for_model: true },
+          normalize: true,
+        }),
+      }
+    );
+    if (!res.ok) {
+      const errBody = await res.text();
+      throw new Error(`HF API ${res.status}: ${errBody.slice(0, 200)}`);
     }
-    
-    if (vector.length !== 768) {
-      throw new Error(`Wrong embedding dimension: got ${vector.length}, expected 768`);
+    const raw = await res.json();
+    // API returns 1D array for single string input, or 2D [num_tokens, 768] — normalize to 1D 768
+    let vector = Array.isArray(raw) ? raw : null;
+    if (!vector || vector.length === 0) {
+      throw new Error("Unexpected embedding response: empty or not array");
     }
-    
+    if (Array.isArray(vector[0])) {
+      // Token-level: mean-pool then L2-normalize
+      const dim = vector[0].length;
+      const sum = new Array(dim).fill(0);
+      for (const row of vector) {
+        for (let i = 0; i < dim; i++) sum[i] += row[i];
+      }
+      const n = vector.length;
+      for (let i = 0; i < dim; i++) sum[i] /= n;
+      let norm = Math.sqrt(sum.reduce((a, v) => a + v * v, 0)) || 1;
+      vector = sum.map((v) => v / norm);
+    } else {
+      vector = [...vector];
+    }
+    if (vector.length !== HF_EMBED_DIMS) {
+      throw new Error(`Wrong embedding dimension: got ${vector.length}, expected ${HF_EMBED_DIMS}`);
+    }
     return vector;
   } catch (error) {
     console.error("[RAG] Embedding error:", error);
@@ -322,19 +344,13 @@ app.get("/health", (_req, res) => {
     status: "ok",
     pineconeConfigured: Boolean(PINECONE_API_KEY && PINECONE_INDEX_NAME),
     groqConfigured: Boolean(GROQ_API_KEY),
-    embeddingsConfigured: true,
+    embeddingsConfigured: Boolean(HUGGINGFACE_API_TOKEN),
   });
 });
 
-// Warmup: load the embedding model so the first /api/chat is fast. Call this when the chat page loads.
-app.get("/api/warmup", async (_req, res) => {
-  try {
-    await getEmbedder();
-    res.json({ status: "ok", message: "Embedding model ready" });
-  } catch (err) {
-    console.error("[/api/warmup] Error:", err);
-    res.status(500).json({ status: "error", error: err?.message || String(err) });
-  }
+// Warmup: no-op when using HF API (no local model). Kept so client can still call it.
+app.get("/api/warmup", (_req, res) => {
+  res.json({ status: "ok", message: "Using Hugging Face API; no warmup needed" });
 });
 
 // Check if embeddings are in Pinecone and get vector count (for debugging)
@@ -343,7 +359,7 @@ app.get("/api/rag-status", async (_req, res) => {
     const health = {
       pineconeConfigured: Boolean(PINECONE_API_KEY && PINECONE_INDEX_NAME),
       groqConfigured: Boolean(GROQ_API_KEY),
-      embeddingsConfigured: true, // Using local @xenova/transformers (no API key needed)
+      embeddingsConfigured: Boolean(HUGGINGFACE_API_TOKEN),
       vectorCount: null,
       indexDimension: null,
       error: null,
@@ -375,6 +391,11 @@ app.post("/api/chat", async (req, res) => {
       return res.status(400).json({ error: "Missing 'message' in request body" });
     }
 
+    if (!HUGGINGFACE_API_TOKEN) {
+      return res
+        .status(500)
+        .json({ error: "HUGGINGFACE_API_TOKEN not configured on server" });
+    }
     if (!GROQ_API_KEY) {
       return res
         .status(500)
@@ -432,12 +453,6 @@ app.post("/api/chat", async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`[RAG] Server listening on http://localhost:${PORT}`);
-  // Preload embedding model in background so first chat request doesn't wait 1–2 min
-  setImmediate(() => {
-    getEmbedder()
-      .then(() => console.log("[RAG] Preload: embedding model ready"))
-      .catch((e) => console.error("[RAG] Preload: embedding model failed", e));
-  });
+  console.log(`[RAG] Server listening on http://localhost:${PORT} (embeddings via Hugging Face API)`);
 });
 

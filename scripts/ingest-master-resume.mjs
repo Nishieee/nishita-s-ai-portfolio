@@ -1,12 +1,15 @@
 import "dotenv/config";
 import { Pinecone } from "@pinecone-database/pinecone";
-import { pipeline } from "@xenova/transformers";
 
-const { PINECONE_API_KEY, PINECONE_INDEX_NAME } = process.env;
+const { PINECONE_API_KEY, PINECONE_INDEX_NAME, HUGGINGFACE_API_TOKEN } = process.env;
 
 if (!PINECONE_API_KEY || !PINECONE_INDEX_NAME) {
   console.error("❌ Missing required environment variables:");
   console.error("   PINECONE_API_KEY, PINECONE_INDEX_NAME");
+  process.exit(1);
+}
+if (!HUGGINGFACE_API_TOKEN) {
+  console.error("❌ Missing HUGGINGFACE_API_TOKEN (required for embeddings)");
   process.exit(1);
 }
 
@@ -194,20 +197,8 @@ const masterResume = {
 // Initialize Pinecone client
 const pinecone = new Pinecone({ apiKey: PINECONE_API_KEY });
 
-// Initialize local embedding model
-let embedder = null;
-async function getEmbedder() {
-  if (!embedder) {
-    console.log("📥 Loading local embedding model (first time may take 1-2 min to download ~420MB)...");
-    embedder = await pipeline(
-      "feature-extraction",
-      "Xenova/all-mpnet-base-v2", // 768 dimensions - matches Pinecone index
-      { quantized: true }
-    );
-    console.log("✅ Embedding model loaded! (768 dimensions)");
-  }
-  return embedder;
-}
+const HF_EMBED_MODEL = "sentence-transformers/all-mpnet-base-v2";
+const HF_EMBED_DIMS = 768;
 
 // Sanitize ID to be ASCII-only (Pinecone requirement)
 function sanitizeId(str) {
@@ -240,17 +231,49 @@ function chunkText(text, maxChunkSize = 500, overlap = 50) {
   return chunks;
 }
 
-// Generate embedding using local @xenova/transformers
+// Generate embedding via Hugging Face Inference API (same 768-dim model as server)
 async function embedText(text) {
   try {
-    const model = await getEmbedder();
-    const output = await model(text, { pooling: "mean", normalize: true });
-    let vector = Array.from(output.data);
-    
-    if (!Array.isArray(vector) || vector.length !== 768) {
-      throw new Error(`Wrong embedding dimension: got ${vector?.length || 'unknown'}, expected 768`);
+    const res = await fetch(
+      `https://api-inference.huggingface.co/pipeline/feature-extraction/${HF_EMBED_MODEL}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${HUGGINGFACE_API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          inputs: text.slice(0, 8192),
+          options: { wait_for_model: true },
+          normalize: true,
+        }),
+      }
+    );
+    if (!res.ok) {
+      const errBody = await res.text();
+      throw new Error(`HF API ${res.status}: ${errBody.slice(0, 200)}`);
     }
-    
+    const raw = await res.json();
+    let vector = Array.isArray(raw) ? raw : null;
+    if (!vector || vector.length === 0) {
+      throw new Error("Unexpected embedding response: empty or not array");
+    }
+    if (Array.isArray(vector[0])) {
+      const dim = vector[0].length;
+      const sum = new Array(dim).fill(0);
+      for (const row of vector) {
+        for (let i = 0; i < dim; i++) sum[i] += row[i];
+      }
+      const n = vector.length;
+      for (let i = 0; i < dim; i++) sum[i] /= n;
+      let norm = Math.sqrt(sum.reduce((a, v) => a + v * v, 0)) || 1;
+      vector = sum.map((v) => v / norm);
+    } else {
+      vector = [...vector];
+    }
+    if (vector.length !== HF_EMBED_DIMS) {
+      throw new Error(`Wrong embedding dimension: got ${vector.length}, expected ${HF_EMBED_DIMS}`);
+    }
     return vector;
   } catch (error) {
     console.error(`Error embedding text: ${error.message}`);
