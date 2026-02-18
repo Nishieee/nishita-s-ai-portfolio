@@ -37,7 +37,7 @@ const ChatPage = () => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Check if embeddings are in the vector DB (Pinecone) on load
+  // Check RAG status and warm up the server (load embedding model) when chat page opens
   useEffect(() => {
     let cancelled = false;
     fetch(`${CHAT_API_URL}/api/rag-status`)
@@ -54,8 +54,12 @@ const ChatPage = () => {
       .catch(() => {
         if (!cancelled) setRagStatus(null);
       });
+    // Start loading the AI model in the background so first message is faster
+    fetch(`${CHAT_API_URL}/api/warmup`).catch(() => {});
     return () => { cancelled = true; };
   }, []);
+
+  const CHAT_TIMEOUT_MS = 180_000; // 3 min — first request after Render cold start can be slow (wake + model load)
 
   const sendMessage = async (text: string) => {
     const trimmed = text.trim();
@@ -66,6 +70,9 @@ const ChatPage = () => {
     setInput("");
     setIsLoading(true);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), CHAT_TIMEOUT_MS);
+
     try {
       const res = await fetch(`${CHAT_API_URL}/api/chat`, {
         method: "POST",
@@ -73,9 +80,16 @@ const ChatPage = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ message: trimmed }),
+        signal: controller.signal,
       });
 
+      clearTimeout(timeoutId);
+
       const data: { answer?: string; detectedRole?: string; error?: string; details?: string } = await res.json().catch(() => ({}));
+
+      if (res.status === 503 && (data.error === "warming_up" || data.details?.toLowerCase().includes("warm"))) {
+        throw new Error("The AI is still warming up. Please wait a moment and try again.");
+      }
 
       if (!res.ok) {
         const errMsg = data.details || data.error || `API error: ${res.status}`;
@@ -95,8 +109,16 @@ const ChatPage = () => {
         },
       ]);
     } catch (err) {
+      clearTimeout(timeoutId);
       console.error("Chat error", err);
-      const message = err instanceof Error ? err.message : "Something went wrong talking to the AI backend. Please check that the resume chat server is running and try again.";
+      const isAbort = err instanceof Error && err.name === "AbortError";
+      const isNetwork = err instanceof TypeError && err.message?.includes("fetch");
+      const message =
+        isAbort || isNetwork
+          ? "The request took too long or the server didn't respond. On the free tier the server may be waking up (this can take 1–2 minutes). Please try again in a moment."
+          : err instanceof Error
+            ? err.message
+            : "Something went wrong talking to the AI backend. Please check that the resume chat server is running and try again.";
       setMessages((prev) => [
         ...prev,
         {

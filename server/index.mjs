@@ -326,6 +326,17 @@ app.get("/health", (_req, res) => {
   });
 });
 
+// Warmup: load the embedding model so the first /api/chat is fast. Call this when the chat page loads.
+app.get("/api/warmup", async (_req, res) => {
+  try {
+    await getEmbedder();
+    res.json({ status: "ok", message: "Embedding model ready" });
+  } catch (err) {
+    console.error("[/api/warmup] Error:", err);
+    res.status(500).json({ status: "error", error: err?.message || String(err) });
+  }
+});
+
 // Check if embeddings are in Pinecone and get vector count (for debugging)
 app.get("/api/rag-status", async (_req, res) => {
   try {
@@ -422,5 +433,11 @@ app.post("/api/chat", async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`[RAG] Server listening on http://localhost:${PORT}`);
+  // Preload embedding model in background so first chat request doesn't wait 1–2 min
+  setImmediate(() => {
+    getEmbedder()
+      .then(() => console.log("[RAG] Preload: embedding model ready"))
+      .catch((e) => console.error("[RAG] Preload: embedding model failed", e));
+  });
 });
 
