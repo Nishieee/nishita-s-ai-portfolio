@@ -1,0 +1,11 @@
+# Netlify: frontend only. Backend runs on Railway/Render (see README).
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# SPA: all routes → index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

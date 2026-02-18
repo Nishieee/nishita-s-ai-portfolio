@@ -50,6 +50,18 @@ GROQ_API_KEY=your-groq-api-key
 - `scripts/delete-all-vectors.mjs` — Wipe index
 - `scripts/setup-pinecone.mjs` — Create index
 
-## Deploy
+## Deploy (Netlify + backend)
 
-Build: `npm run build`. Deploy the `dist/` output and run the RAG server (or a serverless function) with the same env vars. Point the frontend at your RAG API URL via `VITE_CHAT_API_URL` if not same origin.
+Netlify hosts **only the frontend**. The RAG API is a Node server and must run elsewhere (e.g. Railway or Render).
+
+### 1. Deploy backend (Railway or Render)
+
+- **Railway:** [railway.app](https://railway.app) → New Project → Deploy from GitHub. Root directory: project root. Start command: `npm run server`. Add env vars: `PINECONE_API_KEY`, `PINECONE_INDEX_NAME`, `GROQ_API_KEY`. Copy the public URL (e.g. `https://your-app.up.railway.app`).
+- **Render:** [render.com](https://render.com) → New Web Service → connect repo. Build: `npm install`. Start: `node server/index.mjs`. Add same env vars. Copy the service URL.
+
+### 2. Deploy frontend to Netlify
+
+- Connect the repo to [Netlify](https://app.netlify.com). Build command and publish directory are in `netlify.toml`.
+- In Netlify: **Site settings → Environment variables** add:
+  - `VITE_CHAT_API_URL` = your backend URL (e.g. `https://your-app.up.railway.app`) — no trailing slash.
+- Redeploy so the build picks up the variable. Chat will call your backend from the live site.
