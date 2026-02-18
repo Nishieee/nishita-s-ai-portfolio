@@ -5,7 +5,7 @@ const experiences = [
   {
     role: "GenAI Engineer",
     company: "Humanitarians AI",
-    period: "2024 – Present",
+    period: "Jan 2025 – April 2025",
     points: [
       "Built healthcare platforms using LangChain and FastAPI for intelligent document processing",
       "Designed RAG-based systems for medical knowledge retrieval and clinical decision support",
@@ -14,7 +14,7 @@ const experiences = [
   {
     role: "Data Engineer",
     company: "EPM Consultancy",
-    period: "2023 – 2024",
+    period: "Feb 2022 – June 2023",
     points: [
       "Developed PySpark-based e-commerce data pipelines processing millions of transactions",
       "Optimized ETL workflows reducing data processing time by 40%",
@@ -23,7 +23,7 @@ const experiences = [
   {
     role: "AI Engineer",
     company: "DaVinci Corps",
-    period: "2023",
+    period: "May 2020 – August 2020",
     points: [
       "Developed end-to-end AI solutions for enterprise clients",
       "Implemented machine learning models for predictive analytics and automation",
@@ -32,7 +32,7 @@ const experiences = [
   {
     role: "Teaching Assistant",
     company: "Northeastern University",
-    period: "2024",
+    period: "Sept 2025 – Dec 2025",
     points: [
       "Human-Centered AI course — guiding students through responsible AI development",
       "Mentored students on AI ethics, bias detection, and fairness in ML systems",

@@ -64,12 +64,6 @@ const Navbar = () => {
               </Link>
             )
           )}
-          <Link
-            to="/chat"
-            className="text-sm font-medium px-4 py-2 rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
-          >
-            Talk to My Resume
-          </Link>
         </div>
 
         {/* Mobile toggle */}
@@ -97,13 +91,6 @@ const Navbar = () => {
                   {item.label}
                 </button>
               ))}
-              <Link
-                to="/chat"
-                onClick={() => setIsOpen(false)}
-                className="text-sm font-medium px-4 py-2 rounded-full bg-primary text-primary-foreground text-center"
-              >
-                Talk to My Resume
-              </Link>
             </div>
           </motion.div>
         )}

@@ -1,6 +1,5 @@
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
-import { ArrowDown, MessageCircle } from "lucide-react";
+import { ArrowDown } from "lucide-react";
 
 const HeroSection = () => {
   return (
@@ -55,13 +54,6 @@ const HeroSection = () => {
           >
             View Work
           </button>
-          <Link
-            to="/chat"
-            className="px-6 py-3 text-sm font-medium rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-opacity inline-flex items-center justify-center gap-2"
-          >
-            <MessageCircle size={16} />
-            Talk to My Resume
-          </Link>
         </motion.div>
 
         <motion.p
