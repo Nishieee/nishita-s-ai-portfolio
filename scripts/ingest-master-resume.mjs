@@ -235,11 +235,11 @@ function chunkText(text, maxChunkSize = 500, overlap = 50) {
 async function embedText(text) {
   try {
     const res = await fetch(
-      `https://router.huggingface.co/pipeline/feature-extraction/${HF_EMBED_MODEL}`,
+      `https://api-inference.huggingface.co/models/${HF_EMBED_MODEL}`,
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${HUGGINGFACE_API_TOKEN}`,
+          Authorization: `Bearer ${HUGGINGFACE_API_TOKEN.trim()}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
