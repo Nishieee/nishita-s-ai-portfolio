@@ -8,5 +8,5 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 22
-      # Add in Render Dashboard: PINECONE_API_KEY, PINECONE_INDEX_NAME, GROQ_API_KEY, HUGGINGFACE_API_TOKEN
-      # (Production uses API-only embeddings; no heavy model on server = fast cold start.)
+      # Add in Render Dashboard: PINECONE_API_KEY, PINECONE_INDEX_NAME, GROQ_API_KEY
+      # Optional embeddings: OPENAI_API_KEY (1536-dim index) or HUGGINGFACE_API_TOKEN (768-dim). Else Open Text free.

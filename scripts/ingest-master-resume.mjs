@@ -1,17 +1,14 @@
 import "dotenv/config";
 import { Pinecone } from "@pinecone-database/pinecone";
 
-const { PINECONE_API_KEY, PINECONE_INDEX_NAME, HUGGINGFACE_API_TOKEN } = process.env;
+const { PINECONE_API_KEY, PINECONE_INDEX_NAME, HUGGINGFACE_API_TOKEN, OPENAI_API_KEY } = process.env;
 
 if (!PINECONE_API_KEY || !PINECONE_INDEX_NAME) {
   console.error("❌ Missing required environment variables:");
   console.error("   PINECONE_API_KEY, PINECONE_INDEX_NAME");
   process.exit(1);
 }
-if (!HUGGINGFACE_API_TOKEN) {
-  console.error("❌ Missing HUGGINGFACE_API_TOKEN (required for embeddings)");
-  process.exit(1);
-}
+// Embeddings: Open Text (free, no key) or HF if token set. Use same for ingest and server.
 
 // Master Resume Data
 const masterResume = {
@@ -197,8 +194,13 @@ const masterResume = {
 // Initialize Pinecone client
 const pinecone = new Pinecone({ apiKey: PINECONE_API_KEY });
 
+const EMBED_DIMS_768 = 768;
+const EMBED_DIMS_OPENAI = 1536;
+const OPEN_TEXT_URL = "https://api.opentextembeddings.com/v1/embeddings";
+const OPEN_TEXT_MODEL = "bge-base-en";
+const OPENAI_EMBED_MODEL = "text-embedding-3-small";
 const HF_EMBED_MODEL = "sentence-transformers/all-mpnet-base-v2";
-const HF_EMBED_DIMS = 768;
+const HF_LEGACY_URL = `https://api-inference.huggingface.co/models/${HF_EMBED_MODEL}`;
 
 // Sanitize ID to be ASCII-only (Pinecone requirement)
 function sanitizeId(str) {
@@ -231,54 +233,87 @@ function chunkText(text, maxChunkSize = 500, overlap = 50) {
   return chunks;
 }
 
-// Generate embedding via Hugging Face Inference API (same 768-dim model as server)
-async function embedText(text) {
-  try {
-    const res = await fetch(
-      `https://api-inference.huggingface.co/models/${HF_EMBED_MODEL}`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${HUGGINGFACE_API_TOKEN.trim()}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          inputs: text.slice(0, 8192),
-          options: { wait_for_model: true },
-          normalize: true,
-        }),
-      }
-    );
-    if (!res.ok) {
-      const errBody = await res.text();
-      throw new Error(`HF API ${res.status}: ${errBody.slice(0, 200)}`);
+// OpenAI (1536 dims; index must be 1536 — create with PINECONE_INDEX_DIMENSION=1536)
+async function embedWithOpenAI(text) {
+  const key = OPENAI_API_KEY?.trim();
+  if (!key) return null;
+  const res = await fetch("https://api.openai.com/v1/embeddings", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify({
+      model: OPENAI_EMBED_MODEL,
+      input: text.slice(0, 8192),
+    }),
+  });
+  if (!res.ok) return null;
+  const json = await res.json();
+  const vector = json?.data?.[0]?.embedding;
+  if (!Array.isArray(vector) || vector.length !== EMBED_DIMS_OPENAI) return null;
+  return vector;
+}
+
+// Open Text Embeddings (free, no API key) — 768 dims
+async function embedWithOpenText(text) {
+  const res = await fetch(OPEN_TEXT_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ input: text.slice(0, 8192), model: OPEN_TEXT_MODEL }),
+  });
+  if (!res.ok) return null;
+  const json = await res.json();
+  const vector = json?.data?.[0]?.embedding;
+  if (!Array.isArray(vector) || vector.length !== EMBED_DIMS_768) return null;
+  return vector;
+}
+
+// Hugging Face (optional; needs HUGGINGFACE_API_TOKEN)
+async function embedWithHF(text) {
+  const token = HUGGINGFACE_API_TOKEN?.trim();
+  if (!token) return null;
+  const res = await fetch(HF_LEGACY_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      inputs: text.slice(0, 8192),
+      options: { wait_for_model: true },
+      normalize: true,
+    }),
+  });
+  if (!res.ok) return null;
+  const raw = await res.json();
+  let vector = Array.isArray(raw) ? raw : null;
+  if (!vector || vector.length === 0) return null;
+  if (Array.isArray(vector[0])) {
+    const dim = vector[0].length;
+    const sum = new Array(dim).fill(0);
+    for (const row of vector) {
+      for (let i = 0; i < dim; i++) sum[i] += row[i];
     }
-    const raw = await res.json();
-    let vector = Array.isArray(raw) ? raw : null;
-    if (!vector || vector.length === 0) {
-      throw new Error("Unexpected embedding response: empty or not array");
-    }
-    if (Array.isArray(vector[0])) {
-      const dim = vector[0].length;
-      const sum = new Array(dim).fill(0);
-      for (const row of vector) {
-        for (let i = 0; i < dim; i++) sum[i] += row[i];
-      }
-      const n = vector.length;
-      for (let i = 0; i < dim; i++) sum[i] /= n;
-      let norm = Math.sqrt(sum.reduce((a, v) => a + v * v, 0)) || 1;
-      vector = sum.map((v) => v / norm);
-    } else {
-      vector = [...vector];
-    }
-    if (vector.length !== HF_EMBED_DIMS) {
-      throw new Error(`Wrong embedding dimension: got ${vector.length}, expected ${HF_EMBED_DIMS}`);
-    }
-    return vector;
-  } catch (error) {
-    console.error(`Error embedding text: ${error.message}`);
-    throw error;
+    for (let i = 0; i < dim; i++) sum[i] /= vector.length;
+    const norm = Math.sqrt(sum.reduce((a, v) => a + v * v, 0)) || 1;
+    vector = sum.map((v) => v / norm);
+  } else {
+    vector = [...vector];
   }
+  return vector.length === EMBED_DIMS_768 ? vector : null;
+}
+
+async function embedText(text) {
+  const openai = await embedWithOpenAI(text);
+  if (openai) return openai;
+  const openText = await embedWithOpenText(text);
+  if (openText) return openText;
+  const h = await embedWithHF(text);
+  if (h) return h;
+  throw new Error(
+    "Embeddings failed. Set OPENAI_API_KEY, or use Open Text (no key). If Open Text is down, set HUGGINGFACE_API_TOKEN. See README."
+  );
 }
 
 // Process and ingest master resume

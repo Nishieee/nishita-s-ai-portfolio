@@ -11,6 +11,7 @@ const {
   PINECONE_INDEX_NAME,
   GROQ_API_KEY,
   HUGGINGFACE_API_TOKEN,
+  OPENAI_API_KEY,
 } = process.env;
 
 if (!PINECONE_API_KEY) {
@@ -41,15 +42,65 @@ const groq = new Groq({
   apiKey: GROQ_API_KEY || "",
 });
 
-// Embeddings: try Hugging Face API first; if deprecated/401 or no token, use local Xenova (768 dims)
+// Embeddings: OpenAI (1536) when key set; else Open Text / HF / Xenova (768). Index dimension must match.
+const EMBED_DIMS_768 = 768;
+const EMBED_DIMS_OPENAI = 1536;
+const OPEN_TEXT_URL = "https://api.opentextembeddings.com/v1/embeddings";
+const OPEN_TEXT_MODEL = "bge-base-en"; // 768 dims
+const OPENAI_EMBED_MODEL = "text-embedding-3-small"; // 1536 dims, ~$0.02/1M tokens
+
 const HF_EMBED_MODEL = "sentence-transformers/all-mpnet-base-v2";
-const EMBED_DIMS = 768;
 const HF_LEGACY_URL = `https://api-inference.huggingface.co/models/${HF_EMBED_MODEL}`;
 const HF_ROUTER_URL = `https://router.huggingface.co/hf-inference/models/${HF_EMBED_MODEL}/pipeline/feature-extraction`;
 
+async function embedWithOpenAI(text) {
+  const key = OPENAI_API_KEY?.trim();
+  if (!key) return null;
+  try {
+    const res = await fetch("https://api.openai.com/v1/embeddings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        model: OPENAI_EMBED_MODEL,
+        input: text.slice(0, 8192),
+      }),
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const vector = json?.data?.[0]?.embedding;
+    if (!Array.isArray(vector) || vector.length !== EMBED_DIMS_OPENAI) return null;
+    return vector;
+  } catch {
+    return null;
+  }
+}
+
+async function embedWithOpenText(text) {
+  try {
+    const res = await fetch(OPEN_TEXT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        input: text.slice(0, 8192),
+        model: OPEN_TEXT_MODEL,
+      }),
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const vector = json?.data?.[0]?.embedding;
+    if (!Array.isArray(vector) || vector.length !== EMBED_DIMS_768) return null;
+    return vector;
+  } catch {
+    return null;
+  }
+}
+
 let localEmbedder = null;
 async function getLocalEmbedder() {
-  if (IS_PRODUCTION) return null; // Never load heavy model in production (Render cold start)
+  if (IS_PRODUCTION) return null;
   if (!localEmbedder) {
     console.log("[RAG] Loading local embedding model (first time may take 1–2 min)...");
     localEmbedder = await pipeline(
@@ -64,11 +115,10 @@ async function getLocalEmbedder() {
 
 async function embedWithLocal(text) {
   const model = await getLocalEmbedder();
+  if (!model) return null;
   const output = await model(text, { pooling: "mean", normalize: true });
   const vector = Array.from(output.data);
-  if (vector.length !== EMBED_DIMS) {
-    throw new Error(`Local embed wrong dim: ${vector.length}, expected ${EMBED_DIMS}`);
-  }
+  if (vector.length !== EMBED_DIMS_768) return null;
   return vector;
 }
 
@@ -104,7 +154,7 @@ async function embedWithHFOne(text, url) {
   } else {
     vector = [...vector];
   }
-  if (vector.length !== EMBED_DIMS) return null;
+  if (vector.length !== EMBED_DIMS_768) return null;
   return vector;
 }
 
@@ -116,14 +166,27 @@ async function embedWithHF(text) {
 }
 
 async function embedQuery(text) {
-  const fromHF = await embedWithHF(text);
-  if (fromHF) return fromHF;
-  if (IS_PRODUCTION) {
-    throw new Error(
-      "Embeddings require a valid HUGGINGFACE_API_TOKEN. Create a token at https://huggingface.co/settings/tokens with permission \"Make calls to the serverless Inference API\" (use a fine-grained token). Add it in Render Dashboard → Environment."
-    );
+  // If OpenAI key is set, use OpenAI first (index must be 1536 dims; re-ingest with OpenAI)
+  const fromOpenAI = await embedWithOpenAI(text);
+  if (fromOpenAI) return fromOpenAI;
+
+  // Local: prefer Xenova (768) so existing index built with all-mpnet works
+  if (!IS_PRODUCTION) {
+    const fromLocal = await embedWithLocal(text);
+    if (fromLocal) return fromLocal;
+    const fromHF = await embedWithHF(text);
+    if (fromHF) return fromHF;
+    const fromOpenText = await embedWithOpenText(text);
+    if (fromOpenText) return fromOpenText;
+  } else {
+    const fromOpenText = await embedWithOpenText(text);
+    if (fromOpenText) return fromOpenText;
+    const fromHF = await embedWithHF(text);
+    if (fromHF) return fromHF;
   }
-  return embedWithLocal(text);
+  throw new Error(
+    "Embeddings failed. Set OPENAI_API_KEY (and use a 1536-dim index), or ensure Pinecone index was ingested with Open Text / HF / Xenova. See README."
+  );
 }
 
 async function retrieveContext(query, roleFilter = null) {

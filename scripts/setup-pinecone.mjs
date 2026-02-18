@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { Pinecone } from "@pinecone-database/pinecone";
 
-const { PINECONE_API_KEY, PINECONE_INDEX_NAME } = process.env;
+const { PINECONE_API_KEY, PINECONE_INDEX_NAME, PINECONE_INDEX_DIMENSION } = process.env;
 
 if (!PINECONE_API_KEY) {
   console.error("❌ PINECONE_API_KEY is required");
@@ -13,10 +13,11 @@ if (!PINECONE_INDEX_NAME) {
   process.exit(1);
 }
 
-const dimensions = 768;
+// 1536 for OpenAI (text-embedding-3-small); 768 for Open Text / HF / Xenova
+const dimensions = parseInt(PINECONE_INDEX_DIMENSION || "768", 10) || 768;
 
 try {
-  console.log(`✅ Using embedding dimensions: ${dimensions} (Hugging Face all-mpnet-base-v2)`);
+  console.log(`✅ Using embedding dimensions: ${dimensions}${dimensions === 1536 ? " (OpenAI text-embedding-3-small)" : " (Open Text / HF / Xenova)"}`);
   
   // Initialize Pinecone
   const pinecone = new Pinecone({ apiKey: PINECONE_API_KEY });

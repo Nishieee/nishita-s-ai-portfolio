@@ -5,7 +5,7 @@ Portfolio site with an AI-powered resume chat (RAG): ask questions about experie
 ## Tech
 
 - **Frontend:** Vite, React, TypeScript, Tailwind CSS, shadcn/ui
-- **RAG:** Pinecone (vectors), Hugging Face Inference API (embeddings, free tier), Groq (LLM)
+- **RAG:** Pinecone (vectors), OpenAI / Open Text / Hugging Face (embeddings), Groq (LLM)
 
 ## Quick start
 
@@ -23,7 +23,10 @@ Create a `.env` in the project root:
 PINECONE_API_KEY=your-pinecone-api-key
 PINECONE_INDEX_NAME=resume-index
 GROQ_API_KEY=your-groq-api-key
-HUGGINGFACE_API_TOKEN=your-hf-token   # Free tier: https://huggingface.co/settings/tokens
+# Optional — pick one for embeddings:
+# OPENAI_API_KEY=sk-...          # OpenAI text-embedding-3-small (1536 dims, ~$0.02/1M tokens)
+# HUGGINGFACE_API_TOKEN=hf_...   # Hugging Face (768 dims)
+# (If neither set, app uses Open Text Embeddings free tier, 768 dims.)
 ```
 
 ## Scripts
@@ -33,13 +36,13 @@ HUGGINGFACE_API_TOKEN=your-hf-token   # Free tier: https://huggingface.co/settin
 | `npm run dev` | Start Vite dev server (port 8080) |
 | `npm run server` | Start RAG backend (port 4000) |
 | `npm run build` | Production build |
-| `npm run ingest-master-resume` | Embed master resume and upload to Pinecone |
+| `npm run ingest-master-resume` | Embed master resume (Open Text, no key) and upload to Pinecone |
 | `npm run delete-all-vectors` | Clear all vectors from Pinecone |
-| `npm run setup-pinecone` | Create Pinecone index (768 dims, cosine) |
+| `npm run setup-pinecone` | Create Pinecone index (768 or 1536 dims; set `PINECONE_INDEX_DIMENSION=1536` for OpenAI) |
 
 ## RAG flow
 
-1. User question → embedded via Hugging Face API → query Pinecone.
+1. User question → embedded via OpenAI / Open Text / HF (or local Xenova in dev) → query Pinecone.
 2. Top similar chunks (by cosine similarity) → concatenated as context.
 3. Context + question → Groq LLM → answer shown in chat.
 
@@ -55,12 +58,33 @@ HUGGINGFACE_API_TOKEN=your-hf-token   # Free tier: https://huggingface.co/settin
 
 Netlify hosts **only the frontend**. The RAG API is a Node server and must run elsewhere (e.g. Railway or Render).
 
-### 1. Deploy backend (Railway or Render)
+### 1. One-time: index and ingest
 
-- **Railway:** [railway.app](https://railway.app) → New Project → Deploy from GitHub. Root directory: project root. Start command: `npm run server`. Add env vars: `PINECONE_API_KEY`, `PINECONE_INDEX_NAME`, `GROQ_API_KEY`, `HUGGINGFACE_API_TOKEN`. Copy the public URL (e.g. `https://your-app.up.railway.app`).
-- **Render:** [render.com](https://render.com) → New Web Service → connect repo. **Build:** `npm install` (use npm, not bun, so the `sharp` dependency gets prebuilt binaries and doesn’t need `node-gyp`). **Start:** `npm run server`. Add same env vars (including `HUGGINGFACE_API_TOKEN`). Copy the service URL. Optional: use the repo’s `render.yaml` for a one-click deploy.
+**If using OpenAI embeddings** (recommended: fast, cheap): create a **1536-dim** index, then ingest:
 
-### 2. Deploy frontend to Netlify
+```sh
+# Create index (1536 dims for OpenAI)
+PINECONE_INDEX_DIMENSION=1536 npm run setup-pinecone
+# Wait a few min for index ready, then ingest (uses OPENAI_API_KEY from .env)
+npm run ingest-master-resume
+```
+
+**If using free Open Text** (no key): use default 768-dim index:
+
+```sh
+npm run setup-pinecone
+npm run delete-all-vectors
+npm run ingest-master-resume
+```
+
+Add `OPENAI_API_KEY=sk-...` to `.env` (and to Render env) to use OpenAI embeddings. Index dimension must match: 1536 for OpenAI, 768 for Open Text / HF.
+
+### 2. Deploy backend (Railway or Render)
+
+- **Railway:** [railway.app](https://railway.app) → New Project → Deploy from GitHub. Start: `npm run server`. Env: `PINECONE_API_KEY`, `PINECONE_INDEX_NAME`, `GROQ_API_KEY`. (Optional: `HUGGINGFACE_API_TOKEN` for HF embeddings.)
+- **Render:** [render.com](https://render.com) → New Web Service → connect repo. **Build:** `npm install`. **Start:** `npm run server`. Add `PINECONE_API_KEY`, `PINECONE_INDEX_NAME`, `GROQ_API_KEY`. Copy the service URL.
+
+### 3. Deploy frontend to Netlify
 
 - Connect the repo to [Netlify](https://app.netlify.com). Build command and publish directory are in `netlify.toml`.
 - In Netlify: **Site settings → Environment variables** add:
