@@ -22,7 +22,9 @@ if (!PINECONE_INDEX_NAME) {
 if (!GROQ_API_KEY) {
   console.warn("[RAG] Missing GROQ_API_KEY in environment");
 }
-// HUGGINGFACE_API_TOKEN optional — if missing or HF API fails, we fall back to local embeddings
+// In production (e.g. Render): embeddings via API only — no local model (fast cold start).
+// Locally: HF API optional; fall back to local Xenova if HF fails or no token.
+const IS_PRODUCTION = process.env.RENDER === "true" || process.env.NODE_ENV === "production";
 
 const app = express();
 app.use(cors());
@@ -43,9 +45,11 @@ const groq = new Groq({
 const HF_EMBED_MODEL = "sentence-transformers/all-mpnet-base-v2";
 const EMBED_DIMS = 768;
 const HF_LEGACY_URL = `https://api-inference.huggingface.co/models/${HF_EMBED_MODEL}`;
+const HF_ROUTER_URL = `https://router.huggingface.co/hf-inference/models/${HF_EMBED_MODEL}/pipeline/feature-extraction`;
 
 let localEmbedder = null;
 async function getLocalEmbedder() {
+  if (IS_PRODUCTION) return null; // Never load heavy model in production (Render cold start)
   if (!localEmbedder) {
     console.log("[RAG] Loading local embedding model (first time may take 1–2 min)...");
     localEmbedder = await pipeline(
@@ -68,10 +72,10 @@ async function embedWithLocal(text) {
   return vector;
 }
 
-async function embedWithHF(text) {
+async function embedWithHFOne(text, url) {
   const token = HUGGINGFACE_API_TOKEN?.trim();
   if (!token) return null;
-  const res = await fetch(HF_LEGACY_URL, {
+  const res = await fetch(url, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -83,7 +87,7 @@ async function embedWithHF(text) {
       normalize: true,
     }),
   });
-  if (!res.ok) return null; // 410, 401, etc. — fall back to local
+  if (!res.ok) return null;
   const raw = await res.json();
   let vector = Array.isArray(raw) ? raw : null;
   if (!vector || vector.length === 0) return null;
@@ -104,9 +108,21 @@ async function embedWithHF(text) {
   return vector;
 }
 
+async function embedWithHF(text) {
+  let v = await embedWithHFOne(text, HF_LEGACY_URL);
+  if (v) return v;
+  v = await embedWithHFOne(text, HF_ROUTER_URL);
+  return v;
+}
+
 async function embedQuery(text) {
   const fromHF = await embedWithHF(text);
   if (fromHF) return fromHF;
+  if (IS_PRODUCTION) {
+    throw new Error(
+      "Embeddings require a valid HUGGINGFACE_API_TOKEN. Create a token at https://huggingface.co/settings/tokens with permission \"Make calls to the serverless Inference API\" (use a fine-grained token). Add it in Render Dashboard → Environment."
+    );
+  }
   return embedWithLocal(text);
 }
 
@@ -360,8 +376,11 @@ app.get("/health", (_req, res) => {
   });
 });
 
-// Warmup: preload local embedding model so first chat is faster when HF is not used
+// Warmup: in local dev preloads Xenova; in production no-op (embeddings via API only)
 app.get("/api/warmup", async (_req, res) => {
+  if (IS_PRODUCTION) {
+    return res.json({ status: "ok", message: "Production: embeddings via API" });
+  }
   try {
     await getLocalEmbedder();
     res.json({ status: "ok", message: "Embedding model ready" });
@@ -466,11 +485,17 @@ app.post("/api/chat", async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`[RAG] Server listening on http://localhost:${PORT} (embeddings: HF API or local fallback)`);
-  setImmediate(() => {
-    getLocalEmbedder()
-      .then(() => console.log("[RAG] Preload: local embedding model ready"))
-      .catch((e) => console.error("[RAG] Preload:", e.message));
-  });
+  console.log(
+    IS_PRODUCTION
+      ? `[RAG] Server listening on http://localhost:${PORT} (production: embeddings via HF API only)`
+      : `[RAG] Server listening on http://localhost:${PORT} (local: HF API or Xenova fallback)`
+  );
+  if (!IS_PRODUCTION) {
+    setImmediate(() => {
+      getLocalEmbedder()
+        .then(() => console.log("[RAG] Preload: local embedding model ready"))
+        .catch((e) => console.error("[RAG] Preload:", e.message));
+    });
+  }
 });
 

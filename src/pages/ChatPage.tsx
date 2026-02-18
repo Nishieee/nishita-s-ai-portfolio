@@ -59,7 +59,7 @@ const ChatPage = () => {
     return () => { cancelled = true; };
   }, []);
 
-  const CHAT_TIMEOUT_MS = 180_000; // 3 min — first request after Render cold start can be slow (wake + model load)
+  const CHAT_TIMEOUT_MS = 60_000; // 1 min — production uses API-only embeddings (fast); long timeouts are bad practice
 
   const sendMessage = async (text: string) => {
     const trimmed = text.trim();
@@ -115,7 +115,7 @@ const ChatPage = () => {
       const isNetwork = err instanceof TypeError && err.message?.includes("fetch");
       const message =
         isAbort || isNetwork
-          ? "The request took too long or the server didn't respond. On the free tier the server may be waking up (this can take 1–2 minutes). Please try again in a moment."
+          ? "The request timed out. Please try again. If this keeps happening, check that your backend is running and that HUGGINGFACE_API_TOKEN is set (production requires it for embeddings)."
           : err instanceof Error
             ? err.message
             : "Something went wrong talking to the AI backend. Please check that the resume chat server is running and try again.";

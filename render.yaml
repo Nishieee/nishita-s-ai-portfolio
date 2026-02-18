@@ -8,4 +8,5 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 22
-      # Add in Render Dashboard: PINECONE_API_KEY, PINECONE_INDEX_NAME, GROQ_API_KEY
+      # Add in Render Dashboard: PINECONE_API_KEY, PINECONE_INDEX_NAME, GROQ_API_KEY, HUGGINGFACE_API_TOKEN
+      # (Production uses API-only embeddings; no heavy model on server = fast cold start.)
