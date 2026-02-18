@@ -306,6 +306,17 @@ Answer naturally and concisely based on the retrieved context above.`;
   return completion.choices[0]?.message?.content || "I couldn't generate a response. Please try again.";
 }
 
+app.get("/", (_req, res) => {
+  res.json({
+    message: "RAG API for Nishita Matlani portfolio chat",
+    endpoints: {
+      health: "GET /health",
+      ragStatus: "GET /api/rag-status",
+      chat: "POST /api/chat",
+    },
+  });
+});
+
 app.get("/health", (_req, res) => {
   res.json({
     status: "ok",

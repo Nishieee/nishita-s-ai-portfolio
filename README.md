@@ -57,7 +57,7 @@ Netlify hosts **only the frontend**. The RAG API is a Node server and must run e
 ### 1. Deploy backend (Railway or Render)
 
 - **Railway:** [railway.app](https://railway.app) → New Project → Deploy from GitHub. Root directory: project root. Start command: `npm run server`. Add env vars: `PINECONE_API_KEY`, `PINECONE_INDEX_NAME`, `GROQ_API_KEY`. Copy the public URL (e.g. `https://your-app.up.railway.app`).
-- **Render:** [render.com](https://render.com) → New Web Service → connect repo. Build: `npm install`. Start: `node server/index.mjs`. Add same env vars. Copy the service URL.
+- **Render:** [render.com](https://render.com) → New Web Service → connect repo. **Build:** `npm install` (use npm, not bun, so the `sharp` dependency gets prebuilt binaries and doesn’t need `node-gyp`). **Start:** `npm run server`. Add same env vars. Copy the service URL. Optional: use the repo’s `render.yaml` for a one-click deploy.
 
 ### 2. Deploy frontend to Netlify
 

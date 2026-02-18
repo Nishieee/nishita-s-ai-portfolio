@@ -1,0 +1,11 @@
+# Render: backend (RAG API) only. Use npm for install so sharp (recharts dep) gets prebuilt binaries.
+services:
+  - type: web
+    name: nishita-s-ai-portfolio-api
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm run server
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      # Add in Render Dashboard: PINECONE_API_KEY, PINECONE_INDEX_NAME, GROQ_API_KEY
