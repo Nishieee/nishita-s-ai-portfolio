@@ -3,7 +3,7 @@ import { useRef } from "react";
 
 const experiences = [
   {
-    role: "GenAI Engineer",
+    role: "Data Engineer",
     company: "Humanitarians AI",
     period: "Jan 2025 – April 2025",
     points: [
@@ -12,7 +12,7 @@ const experiences = [
     ],
   },
   {
-    role: "Data Engineer",
+    role: "BI/Data Engineer",
     company: "EPM Consultancy",
     period: "Feb 2022 – June 2023",
     points: [
@@ -21,7 +21,7 @@ const experiences = [
     ],
   },
   {
-    role: "AI Engineer",
+    role: "BI/Data Engineer",
     company: "DaVinci Corps",
     period: "May 2020 – August 2020",
     points: [
