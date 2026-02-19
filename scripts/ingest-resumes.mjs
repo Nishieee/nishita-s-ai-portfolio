@@ -372,7 +372,7 @@ function chunkText(text, maxChunkSize = 500, overlap = 50) {
 async function embedText(text) {
   try {
     const res = await fetch(
-      `https://api-inference.huggingface.co/models/${HF_EMBED_MODEL}`,
+      `https://router.huggingface.co/hf-inference/models/${HF_EMBED_MODEL}`,
       {
         method: "POST",
         headers: {

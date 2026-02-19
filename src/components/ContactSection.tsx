@@ -33,13 +33,13 @@ const ContactSection = () => {
           className="flex justify-center gap-6"
         >
           <a
-            href="mailto:nishita@example.com"
+            href="mailto:matlaninishi@gmail.com"
             className="flex items-center gap-2 px-5 py-2.5 text-sm border border-border rounded-full text-foreground hover:bg-foreground hover:text-background transition-all duration-300"
           >
             <Mail size={16} /> Email
           </a>
           <a
-            href="https://linkedin.com/in/nishitamatlani"
+            href="https://www.linkedin.com/in/nishitamatlani"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 px-5 py-2.5 text-sm border border-border rounded-full text-foreground hover:bg-foreground hover:text-background transition-all duration-300"
@@ -47,7 +47,7 @@ const ContactSection = () => {
             <Linkedin size={16} /> LinkedIn
           </a>
           <a
-            href="https://github.com/nishitamatlani"
+            href="https://github.com/nishieee"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 px-5 py-2.5 text-sm border border-border rounded-full text-foreground hover:bg-foreground hover:text-background transition-all duration-300"
