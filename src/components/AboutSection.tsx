@@ -40,10 +40,13 @@ const AboutSection = () => {
               My journey has taken me from GenAI engineering to data engineering to AI solutions—each role 
               deepening my understanding of how intelligent systems can transform industries.
             </p>
-            <p className="text-muted-foreground leading-relaxed">
+            <p className="text-muted-foreground leading-relaxed mb-4">
               Currently pursuing my Master's in Information Systems at Northeastern University, 
               I combine academic rigor with hands-on experience in LLMs, data pipelines, 
               and cloud architecture to create solutions that are both elegant and effective.
+            </p>
+            <p className="text-muted-foreground leading-relaxed">
+              I’m a traveler, a baker 🍪, a Call of Duty enthusiast 🎮, and a cute café hunter ☕ - always on the lookout for cozy corners, dreamy lattes, and the perfect vibes! 💕
             </p>
           </motion.div>
 

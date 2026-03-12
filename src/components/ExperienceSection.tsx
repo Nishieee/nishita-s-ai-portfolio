@@ -12,16 +12,16 @@ const experiences = [
     ],
   },
   {
-    role: "BI/Data Engineer",
+    role: "Data Engineer",
     company: "EPM Consultancy",
     period: "Feb 2022 – June 2023",
     points: [
-      "Developed PySpark-based e-commerce data pipelines processing millions of transactions",
-      "Optimized ETL workflows reducing data processing time by 40%",
+      "Developed e-commerce data pipelines on AWS processing 2 TB of data.",
+      "Designed ETL workflows that reduced processing time by 40% and supported large-scale data migration on AWS cloud.",
     ],
   },
   {
-    role: "BI/Data Engineer",
+    role: "Data Engineer",
     company: "DaVinci Corps",
     period: "May 2020 – August 2020",
     points: [
