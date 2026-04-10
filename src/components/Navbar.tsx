@@ -3,11 +3,15 @@ import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 
-const navItems = [
+const sectionItems = [
   { label: "About", href: "#about" },
   { label: "Experience", href: "#experience" },
   { label: "Projects", href: "#projects" },
   { label: "Contact", href: "#contact" },
+];
+
+const pageItems = [
+  { label: "Gallery", href: "/gallery" },
 ];
 
 const Navbar = () => {
@@ -45,7 +49,7 @@ const Navbar = () => {
 
         {/* Desktop */}
         <div className="hidden md:flex items-center gap-8">
-          {navItems.map((item) =>
+          {sectionItems.map((item) =>
             isHome ? (
               <button
                 key={item.label}
@@ -64,6 +68,15 @@ const Navbar = () => {
               </Link>
             )
           )}
+          {pageItems.map((item) => (
+            <Link
+              key={item.label}
+              to={item.href}
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {item.label}
+            </Link>
+          ))}
         </div>
 
         {/* Mobile toggle */}
@@ -82,7 +95,7 @@ const Navbar = () => {
             className="md:hidden bg-background border-b border-border overflow-hidden"
           >
             <div className="px-6 py-4 flex flex-col gap-4">
-              {navItems.map((item) => (
+              {sectionItems.map((item) => (
                 <button
                   key={item.label}
                   onClick={() => handleNavClick(item.href)}
@@ -90,6 +103,16 @@ const Navbar = () => {
                 >
                   {item.label}
                 </button>
+              ))}
+              {pageItems.map((item) => (
+                <Link
+                  key={item.label}
+                  to={item.href}
+                  onClick={() => setIsOpen(false)}
+                  className="text-left text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {item.label}
+                </Link>
               ))}
             </div>
           </motion.div>
