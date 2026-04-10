@@ -2,7 +2,30 @@ import { motion } from "framer-motion";
 import { Github, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 
+const GITHUB_BASE = "https://github.com/nishieee";
+
 const projects = [
+  {
+    title: "DocQuest",
+    description:
+      "A GenAI-powered research agent that intelligently processes and queries academic documents using RAG architecture.",
+    stack: ["LangChain", "FastAPI", "Python", "RAG"],
+    github: `${GITHUB_BASE}/DocQuest`,
+  },
+  {
+    title: "AIVY",
+    description:
+      "Gamified learning assistant that makes education interactive through AI-driven personalized learning paths.",
+    stack: ["React", "Python", "OpenAI", "Gamification"],
+    github: `${GITHUB_BASE}/AIVY`,
+  },
+  {
+    title: "Finlo",
+    description:
+      "AI-powered financial management system designed for small businesses, automating bookkeeping and insights.",
+    stack: ["Python", "FastAPI", "ML", "AWS"],
+    github: `${GITHUB_BASE}/Finlo`,
+  },
   {
     title: "LootStream",
     description:
