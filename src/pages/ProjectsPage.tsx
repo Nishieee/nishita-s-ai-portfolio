@@ -1,53 +1,7 @@
 import { motion } from "framer-motion";
 import { Github, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
-
-const GITHUB_BASE = "https://github.com/nishieee";
-
-const projects = [
-  {
-    title: "DocQuest",
-    description:
-      "A GenAI-powered research agent that intelligently processes and queries academic documents using RAG architecture.",
-    stack: ["LangChain", "FastAPI", "Python", "RAG"],
-    github: `${GITHUB_BASE}/DocQuest`,
-  },
-  {
-    title: "AIVY",
-    description:
-      "Gamified learning assistant that makes education interactive through AI-driven personalized learning paths.",
-    stack: ["React", "Python", "OpenAI", "Gamification"],
-    github: `${GITHUB_BASE}/AIVY`,
-  },
-  {
-    title: "Finlo",
-    description:
-      "AI-powered financial management system designed for small businesses, automating bookkeeping and insights.",
-    stack: ["Python", "FastAPI", "ML", "AWS"],
-    github: `${GITHUB_BASE}/Finlo`,
-  },
-  {
-    title: "LootStream",
-    description:
-      "Real-time gaming economy analytics inspired by freemium mobile games: synthetic events flow through Kafka (Avro) into Snowflake via Kafka Connect and Snowpipe Streaming, with bronze landing tables for purchases, upgrades, chests, and trades.",
-    stack: ["Python", "Kafka", "Snowflake", "Docker", "Avro"],
-    github: "https://github.com/Nishieee/LootStream",
-  },
-  {
-    title: "MegaCollision",
-    description:
-      "End-to-end data engineering for motor vehicle collisions across New York, Chicago, and Austin — Talend ETL, star-schema warehousing on Azure SQL, and Power BI / Tableau for traffic-safety insights.",
-    stack: ["Talend", "Azure SQL", "Power BI", "Tableau", "SQL"],
-    github: "https://github.com/Nishieee/MegaCollision",
-  },
-  {
-    title: "medicode",
-    description:
-      "Converts clinical notes into accurate ICD-10 codes using NLP and deep learning.",
-    stack: ["Python", "NLP", "Deep Learning", "Healthcare"],
-    github: "https://github.com/nishieee/medicode",
-  },
-];
+import { allProjects } from "@/data/projects";
 
 const ProjectsPage = () => {
   return (
@@ -76,9 +30,9 @@ const ProjectsPage = () => {
         </motion.div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map((project, i) => (
+          {allProjects.map((project, i) => (
             <motion.div
-              key={i}
+              key={project.title}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.08 * i }}
