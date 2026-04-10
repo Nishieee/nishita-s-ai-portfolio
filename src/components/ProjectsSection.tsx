@@ -82,6 +82,16 @@ const ProjectsSection = () => {
             </motion.div>
           ))}
         </div>
+
+        <div className="mt-10 text-center">
+          <a
+            href="/projects"
+            className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors group"
+          >
+            View all projects
+            <span className="group-hover:translate-x-1 transition-transform">→</span>
+          </a>
+        </div>
       </div>
     </section>
   );

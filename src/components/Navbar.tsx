@@ -3,11 +3,15 @@ import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 
-const navItems = [
+const sectionItems = [
   { label: "About", href: "#about" },
   { label: "Experience", href: "#experience" },
   { label: "Projects", href: "#projects" },
   { label: "Contact", href: "#contact" },
+];
+
+const pageItems = [
+  { label: "Gallery", href: "/gallery" },
 ];
 
 const Navbar = () => {
