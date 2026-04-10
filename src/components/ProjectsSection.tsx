@@ -1,27 +1,28 @@
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
-import { ExternalLink, Github } from "lucide-react";
-
-const GITHUB_BASE = "https://github.com/nishieee";
+import { Github } from "lucide-react";
 
 const projects = [
   {
-    title: "DocQuest",
-    description: "A GenAI-powered research agent that intelligently processes and queries academic documents using RAG architecture.",
-    stack: ["LangChain", "FastAPI", "Python", "RAG"],
-    github: `${GITHUB_BASE}/DocQuest`,
+    title: "LootStream",
+    description:
+      "Real-time gaming economy analytics inspired by freemium mobile games: synthetic events flow through Kafka (Avro) into Snowflake via Kafka Connect and Snowpipe Streaming, with bronze landing tables for purchases, upgrades, chests, and trades.",
+    stack: ["Python", "Kafka", "Snowflake", "Docker", "Avro"],
+    github: "https://github.com/Nishieee/LootStream",
   },
   {
-    title: "AIVY",
-    description: "Gamified learning assistant that makes education interactive through AI-driven personalized learning paths.",
-    stack: ["React", "Python", "OpenAI", "Gamification"],
-    github: `${GITHUB_BASE}/AIVY`,
+    title: "MegaCollision",
+    description:
+      "End-to-end data engineering for motor vehicle collisions across New York, Chicago, and Austin — Talend ETL, star-schema warehousing on Azure SQL, and Power BI / Tableau for traffic-safety insights.",
+    stack: ["Talend", "Azure SQL", "Power BI", "Tableau", "SQL"],
+    github: "https://github.com/Nishieee/MegaCollision",
   },
   {
-    title: "Finlo",
-    description: "AI-powered financial management system designed for small businesses, automating bookkeeping and insights.",
-    stack: ["Python", "FastAPI", "ML", "AWS"],
-    github: `${GITHUB_BASE}/Finlo`,
+    title: "medicode",
+    description:
+      "Converts clinical notes into accurate ICD-10 codes using NLP and deep learning.",
+    stack: ["Python", "NLP", "Deep Learning", "Healthcare"],
+    github: "https://github.com/nishieee/medicode",
   },
 ];
 
