@@ -3,39 +3,30 @@ import { useRef } from "react";
 
 const experiences = [
   {
-    role: "AI Engineer",
+    role: "Data Engineer",
     company: "Humanitarians AI",
     period: "Jan 2025 – April 2025",
     points: [
-      "Built healthcare platforms using LangChain and FastAPI for intelligent document processing",
-      "Designed RAG-based systems for medical knowledge retrieval and clinical decision support",
+      "Built and maintained data pipelines for analytics and reporting",
+      "Improved data quality and reliability with validation and monitoring",
+    ],
+  },
+  {
+    role: "Data Analyst",
+    company: "EPM",
+    period: "Jan 2023 – Jun 2023",
+    points: [
+      "Developed data models to support reporting and analysis",
+      "Built dashboards and reports for stakeholder decision-making",
     ],
   },
   {
     role: "Data Engineer",
-    company: "EPM Consultancy",
-    period: "Feb 2022 – June 2023",
+    company: "DaVinci",
+    period: "May 2021 – Aug 2021",
     points: [
-      "Developed e-commerce data pipelines on AWS processing 2 TB of data.",
-      "Designed ETL workflows that reduced processing time by 40% and supported large-scale data migration on AWS cloud.",
-    ],
-  },
-  {
-    role: "AI Engineer",
-    company: "DaVinci Corps",
-    period: "May 2020 – August 2020",
-    points: [
-      "Developed end-to-end AI solutions for enterprise clients",
-      "Implemented machine learning models for predictive analytics and automation",
-    ],
-  },
-  {
-    role: "Teaching Assistant",
-    company: "Northeastern University",
-    period: "Sept 2025 – Dec 2025",
-    points: [
-      "Human-Centered AI course — guiding students through responsible AI development",
-      "Mentored students on AI ethics, bias detection, and fairness in ML systems",
+      "Designed and supported ETL workflows for downstream teams",
+      "Collaborated cross-functionally to define data requirements and sources",
     ],
   },
 ];
