@@ -3,11 +3,26 @@ import { ArrowDown } from "lucide-react";
 
 const HeroSection = () => {
   return (
-    <section className="min-h-screen flex items-center justify-center relative px-6">
-      {/* Subtle background decoration */}
+    <section className="min-h-screen flex items-center justify-center relative px-6 overflow-hidden">
+      {/* Animated background blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 right-1/4 w-64 h-64 rounded-full bg-primary/5 blur-3xl" />
-        <div className="absolute bottom-1/3 left-1/4 w-80 h-80 rounded-full bg-secondary/10 blur-3xl" />
+        <motion.div
+          animate={{ x: [0, 60, 0], y: [0, 40, 0], scale: [1, 1.15, 1] }}
+          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-1/4 right-1/4 w-[32rem] h-[32rem] rounded-full bg-primary/15 blur-3xl"
+        />
+        <motion.div
+          animate={{ x: [0, -50, 0], y: [0, -30, 0], scale: [1, 1.2, 1] }}
+          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute bottom-1/4 left-1/4 w-[28rem] h-[28rem] rounded-full bg-teal/20 blur-3xl"
+        />
+        <motion.div
+          animate={{ rotate: [0, 360] }}
+          transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40rem] h-[40rem] rounded-full border border-primary/10"
+        />
+        {/* Subtle grid */}
+        <div className="absolute inset-0 opacity-[0.025] [background-image:linear-gradient(hsl(var(--foreground))_1px,transparent_1px),linear-gradient(90deg,hsl(var(--foreground))_1px,transparent_1px)] [background-size:48px_48px]" />
       </div>
 
       <div className="max-w-3xl mx-auto text-center relative z-10">
