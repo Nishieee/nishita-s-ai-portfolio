@@ -10,8 +10,13 @@ const contributions = [
       "Contributing to providers, operators, and documentation for the leading open-source workflow orchestrator.",
     stat: "30k+ stars",
     icon: "🪂",
-    href: "https://github.com/apache/airflow",
+    href: "https://github.com/apache/airflow/pulls?q=is%3Apr+author%3A%40me",
     accent: "from-teal/30 via-primary/20 to-transparent",
+    prs: [
+      { label: "PR #66968", url: "https://github.com/apache/airflow/pull/66968" },
+      { label: "PR #66966", url: "https://github.com/apache/airflow/pull/66966" },
+      { label: "PR #66965", url: "https://github.com/apache/airflow/pull/66965" },
+    ],
   },
   {
     name: "OpenSearch (AWS)",
@@ -22,6 +27,10 @@ const contributions = [
     icon: "🔍",
     href: "https://github.com/opensearch-project",
     accent: "from-primary/30 via-teal/20 to-transparent",
+    prs: [
+      { label: "Docs #12383", url: "https://github.com/opensearch-project/documentation-website/pull/12383" },
+      { label: "Docs #12371", url: "https://github.com/opensearch-project/documentation-website/pull/12371" },
+    ],
   },
 ];
 
@@ -65,11 +74,8 @@ const OpenSourceSection = () => {
 
         <div className="grid md:grid-cols-2 gap-6">
           {contributions.map((c, i) => (
-            <motion.a
+            <motion.div
               key={c.name}
-              href={c.href}
-              target="_blank"
-              rel="noopener noreferrer"
               initial={{ opacity: 0, y: 40 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.6, delay: 0.15 * i }}
@@ -95,13 +101,37 @@ const OpenSourceSection = () => {
                 <p className="text-sm text-muted-foreground leading-relaxed mb-6">
                   {c.description}
                 </p>
-                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  <GitBranch size={14} />
-                  <span>View contributions</span>
-                  <span className="transition-transform group-hover:translate-x-1.5">→</span>
+
+                <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">
+                  Merged PRs
+                </p>
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {c.prs.map((pr) => (
+                    <a
+                      key={pr.url}
+                      href={pr.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-accent text-accent-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
+                    >
+                      <GitPullRequest size={11} />
+                      {pr.label}
+                    </a>
+                  ))}
                 </div>
+
+                <a
+                  href={c.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary transition-colors"
+                >
+                  <GitBranch size={14} />
+                  <span>View all contributions</span>
+                  <span className="transition-transform group-hover:translate-x-1.5">→</span>
+                </a>
               </div>
-            </motion.a>
+            </motion.div>
           ))}
         </div>
       </div>
