@@ -10,8 +10,13 @@ const contributions = [
       "Contributing to providers, operators, and documentation for the leading open-source workflow orchestrator.",
     stat: "30k+ stars",
     icon: "🪂",
-    href: "https://github.com/apache/airflow",
+    href: "https://github.com/apache/airflow/pulls?q=is%3Apr+author%3A%40me",
     accent: "from-teal/30 via-primary/20 to-transparent",
+    prs: [
+      { label: "PR #66968", url: "https://github.com/apache/airflow/pull/66968" },
+      { label: "PR #66966", url: "https://github.com/apache/airflow/pull/66966" },
+      { label: "PR #66965", url: "https://github.com/apache/airflow/pull/66965" },
+    ],
   },
   {
     name: "OpenSearch (AWS)",
@@ -22,6 +27,10 @@ const contributions = [
     icon: "🔍",
     href: "https://github.com/opensearch-project",
     accent: "from-primary/30 via-teal/20 to-transparent",
+    prs: [
+      { label: "Docs #12383", url: "https://github.com/opensearch-project/documentation-website/pull/12383" },
+      { label: "Docs #12371", url: "https://github.com/opensearch-project/documentation-website/pull/12371" },
+    ],
   },
 ];
 
