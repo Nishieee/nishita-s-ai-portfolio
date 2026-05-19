@@ -6,8 +6,9 @@ import { Menu, X } from "lucide-react";
 const sectionItems = [
   { label: "About", href: "#about" },
   { label: "Experience", href: "#experience" },
-  { label: "Projects", href: "#projects" },
   { label: "Open Source", href: "#opensource" },
+  { label: "Projects", href: "#projects" },
+  { label: "Articles", href: "#articles" },
   { label: "Contact", href: "#contact" },
 ];
 

@@ -7,7 +7,7 @@ const ContactSection = () => {
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section id="contact" className="py-24 px-6 bg-card" ref={ref}>
+    <section id="contact" className="py-16 px-6 bg-card" ref={ref}>
       <div className="max-w-3xl mx-auto text-center">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -58,7 +58,7 @@ const ContactSection = () => {
       </div>
 
       {/* Footer */}
-      <div className="max-w-5xl mx-auto mt-24 pt-8 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div className="max-w-5xl mx-auto mt-16 pt-8 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-4">
         <p className="font-serif text-lg text-foreground">
           NM<span className="text-primary">.</span>
         </p>
