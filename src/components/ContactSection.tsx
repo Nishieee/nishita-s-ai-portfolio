@@ -58,7 +58,7 @@ const ContactSection = () => {
       </div>
 
       {/* Footer */}
-      <div className="max-w-5xl mx-auto mt-24 pt-8 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div className="max-w-5xl mx-auto mt-16 pt-8 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-4">
         <p className="font-serif text-lg text-foreground">
           NM<span className="text-primary">.</span>
         </p>
