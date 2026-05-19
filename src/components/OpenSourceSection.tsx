@@ -39,7 +39,7 @@ const OpenSourceSection = () => {
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section id="opensource" className="relative py-28 px-6 overflow-hidden" ref={ref}>
+    <section id="opensource" className="relative py-16 px-6 overflow-hidden" ref={ref}>
       {/* Aurora background */}
       <div className="absolute inset-0 pointer-events-none">
         <motion.div
